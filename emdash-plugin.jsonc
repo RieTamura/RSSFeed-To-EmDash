@@ -1,0 +1,61 @@
+{
+	"$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
+
+	"slug": "rss-feed",
+	"publisher": "did:plc:myrtyr2rsjiivzlp5m6qevv5",
+
+	"license": "MIT",
+	"author": { "name": "Rie Tamura", "url": "https://bsky.app/profile/connectobasan.com" },
+	"security": { "url": "https://github.com/RieTamura" },
+	"description": "Shows items from RSS and Atom feeds, such as a YouTube channel, on your EmDash site by syncing them into a collection.",
+
+	// Trust contract — what runtime APIs the plugin asks for.
+	// Changing these between releases requires a version bump because
+	// installed users have consented to the old contract.
+	"capabilities": [
+		// Read the feed.
+		"network:request",
+		// Check that the target collection has the fields the plugin writes.
+		"schema:read",
+		// Save each new item as an entry, then publish it.
+		"content:write",
+		"content:publish"
+	],
+	// YouTube channel feeds. note, Zenn and Hatena Blog are added before the first release.
+	"allowedHosts": ["www.youtube.com"],
+	"storage": {
+		// One record per saved item, keyed by its feed id, so an item deleted in the admin is not saved again.
+		"items": { "indexes": ["publishedAt"] }
+	},
+
+	"admin": {
+		"settingsSchema": {
+			"feed_url": {
+				"label": "Feed URL",
+				"description": "The RSS or Atom feed to show. For a YouTube channel, use https://www.youtube.com/feeds/videos.xml?channel_id=…",
+				"type": "url",
+				"placeholder": "https://www.youtube.com/feeds/videos.xml?channel_id=…"
+			},
+			"limit": {
+				"label": "Items to import",
+				"description": "How many of the newest items in the feed to save. A YouTube feed holds 15.",
+				"type": "number",
+				"default": 15,
+				"min": 1,
+				"max": 15
+			},
+			"include_shorts": {
+				"label": "Include YouTube Shorts",
+				"description": "Also save Shorts from a YouTube channel feed.",
+				"type": "boolean",
+				"default": false
+			},
+			"collection": {
+				"label": "Collection",
+				"description": "The collection items are saved to. It must have the fields listed in the plugin README.",
+				"type": "string",
+				"default": "feed_items"
+			}
+		}
+	}
+}
