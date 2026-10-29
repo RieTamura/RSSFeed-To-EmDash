@@ -1,8 +1,14 @@
 {
 	"name": "rss-feed",
 	"version": "0.1.0",
+	"description": "Copies RSS and Atom feed items, such as YouTube videos and posts on note, Zenn and Hatena Blog, into an EmDash collection.",
 	"private": true,
 	"type": "module",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/RieTamura/RSSFeed-To-EmDash.git"
+	},
 	"packageManager": "npm@11.13.0",
 	"main": "dist/index.mjs",
 	"exports": {
@@ -19,6 +25,7 @@
 	"scripts": {
 		"validate": "emdash-plugin validate",
 		"build": "emdash-plugin build",
+		"prepare": "emdash-plugin build",
 		"dev": "emdash-plugin dev",
 		"typecheck": "tsc --noEmit",
 		"test": "emdash-plugin validate && vitest run",

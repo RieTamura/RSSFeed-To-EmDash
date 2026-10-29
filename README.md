@@ -6,6 +6,25 @@ Every 30 minutes it reads one of your feeds, taking them in turn, skips YouTube 
 
 The plugin only stores the items. How they look on the site is up to your theme: query the collection like any other.
 
+## Install
+
+The plugin is not on the EmDash plugin registry yet. Install it from GitHub; npm builds it on install:
+
+```sh
+npm install github:RieTamura/RSSFeed-To-EmDash
+```
+
+Then run it in-process from `astro.config.mjs`, which needs no Worker Loader:
+
+```js
+import rssFeed from "rss-feed";
+
+emdash({
+	// ...
+	plugins: [rssFeed],
+});
+```
+
 ## Setup
 
 1. Create a collection (default slug `feed_items`) with these fields:
