@@ -1,8 +1,8 @@
 # RSS Feed
 
-An EmDash plugin that copies the newest items of an RSS or Atom feed, such as a YouTube channel, into a collection on your site, so your theme can show them next to your posts.
+An EmDash plugin that copies the newest items of RSS and Atom feeds, such as a YouTube channel or a blog on note, Zenn or Hatena Blog, into a collection on your site, so your theme can show them next to your posts.
 
-Every 30 minutes it reads the feed, skips YouTube Shorts unless you turn them on, and saves each new item as an entry, then publishes it. Publishing purges the collection's cache tag, so cached pages pick the item up on the next request. It saves one new item per run and picks up the rest on later runs. If the feed cannot be read (YouTube's feeds sometimes answer 404 for hours or days), nothing changes and the next run tries again. An item you delete in the admin is not saved again.
+Every 30 minutes it reads one of your feeds, taking them in turn, skips YouTube Shorts unless you turn them on, and saves each new item as an entry, then publishes it. Publishing purges the collection's cache tag, so cached pages pick the item up on the next request. It saves one new item per run and picks up the rest on later runs. If a feed cannot be read (YouTube's feeds sometimes answer 404 for hours or days), nothing changes and the feed is tried again on its next turn. An item you delete in the admin is not saved again.
 
 The plugin only stores the items. How they look on the site is up to your theme: query the collection like any other.
 
@@ -21,8 +21,19 @@ The plugin only stores the items. How they look on the site is up to your theme:
    | `source` | string |
    | `kind` | string |
 
-2. In the plugin settings, set the feed URL. For a YouTube channel, use `https://www.youtube.com/feeds/videos.xml?channel_id=…`.
-3. Optionally choose how many items to import (1–15) and whether to include YouTube Shorts.
+2. In the plugin settings, list your feeds, one per line:
+
+   | Service | Feed URL |
+   | --- | --- |
+   | YouTube | `https://www.youtube.com/feeds/videos.xml?channel_id=…` |
+   | note | `https://note.com/<user>/rss` |
+   | Zenn | `https://zenn.dev/<user>/feed` |
+   | Hatena Blog | `https://<blog>.hatenablog.com/rss` (also `.hatenablog.jp`, `.hateblo.jp`, `.hatenadiary.com`, `.hatenadiary.jp`) |
+
+   The plugin may only reach these hosts, so other feeds, and Hatena Blog on a custom domain, cannot be read.
+3. Optionally choose how many items of each feed to import (1–30) and whether to include YouTube Shorts.
+
+Each item records its `source` (`youtube`, `note`, `zenn`, `hatena`) and `kind` (`video`, `short`, `article`).
 
 ## Showing the items
 

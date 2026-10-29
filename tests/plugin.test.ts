@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 
 import { keyOf, REQUIRED_FIELDS } from "../src/feed";
+import { feedUrlsOf } from "../src/plugin";
 
+import rss from "./fixtures/rss.xml?raw";
 import youtube from "./fixtures/youtube.xml?raw";
 
 const FEED_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UCexample";
@@ -30,7 +32,7 @@ async function setup(options: { collection?: boolean; feedUrl?: string | null } 
 		});
 	}
 	if (options.feedUrl !== null) {
-		await host.fixtures.plugin.setting("feed_url", options.feedUrl ?? FEED_URL);
+		await host.fixtures.plugin.setting("feed_urls", options.feedUrl ?? FEED_URL);
 	}
 	return host;
 }
@@ -63,7 +65,14 @@ describe("sync", () => {
 
 		const result = await runSyncRoute(h);
 
-		expect(result).toEqual({ status: "ok", created: 1, published: 1, duplicatesRemoved: 0, remaining: 1 });
+		expect(result).toEqual({
+			status: "ok",
+			feed: FEED_URL,
+			created: 1,
+			published: 1,
+			duplicatesRemoved: 0,
+			remaining: 1,
+		});
 		const items = await h.inspect.content.list("feed_items");
 		expect(items).toHaveLength(1);
 		expect(items[0]?.status).toBe("published");
@@ -150,8 +159,21 @@ describe("sync", () => {
 	it("changes nothing when YouTube answers 404 for a while", async () => {
 		const h = await setup();
 		await h.http.respond(FEED_URL, new Response("Not Found", { status: 404 }));
-		expect(await runSyncRoute(h)).toEqual({ status: "fetch_failed", httpStatus: 404 });
+		expect(await runSyncRoute(h)).toEqual({ status: "fetch_failed", feed: FEED_URL, httpStatus: 404 });
 		expect(await h.inspect.content.list("feed_items")).toHaveLength(0);
+	});
+
+	it("reads one feed per run, taking them in turn", async () => {
+		const blog = "https://example.hatenablog.com/rss";
+		const h = await setup({ feedUrl: [FEED_URL, "", "not a url", blog, ""].join("\n") });
+		const feeds = [];
+		for (const url of [FEED_URL, blog, FEED_URL]) {
+			await h.http.respond(url, feedResponse(url === blog ? rss : youtube));
+			feeds.push(((await runSyncRoute(h)) as { feed: string }).feed);
+		}
+		expect(feeds).toEqual([FEED_URL, blog, FEED_URL]);
+		const items = await h.inspect.content.list("feed_items");
+		expect(items.map((item) => item.data.source).sort()).toEqual(["hatena", "youtube", "youtube"]);
 	});
 
 	it("does nothing until a feed URL is set", async () => {
@@ -173,5 +195,15 @@ describe("sync", () => {
 			problems: ['collection "feed_items" does not exist'],
 		});
 		expect(h.http.requests()).toHaveLength(0);
+	});
+});
+
+describe("feedUrlsOf", () => {
+	it("keeps http(s) URLs, one per line", () => {
+		expect(feedUrlsOf([" https://a.example/feed ", "", "ftp://b.example/feed", "hello", "http://c.example/rss"].join("\r\n"))).toEqual([
+			"https://a.example/feed",
+			"http://c.example/rss",
+		]);
+		expect(feedUrlsOf(undefined)).toEqual([]);
 	});
 });

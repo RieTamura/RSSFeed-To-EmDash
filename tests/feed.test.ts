@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseFeed, sourceOf } from "../src/feed";
 
+import hatenaAtom from "./fixtures/hatena-atom.xml?raw";
 import rss from "./fixtures/rss.xml?raw";
 import youtube from "./fixtures/youtube.xml?raw";
 
@@ -54,7 +55,7 @@ describe("parseFeed: RSS 2.0", () => {
 		]);
 	});
 
-	it("reads CDATA, strips HTML from the description, and reads a text thumbnail", () => {
+	it("reads CDATA, strips HTML and note's 続きをみる link from the description, and reads a text thumbnail", () => {
 		expect(items[0]).toMatchObject({
 			title: "CDATA の題 & 記号",
 			summary: "本文の はじめ です。& も入る。",
@@ -66,7 +67,7 @@ describe("parseFeed: RSS 2.0", () => {
 		});
 	});
 
-	it("uses the link as the id without a guid, and an image enclosure as the thumbnail", () => {
+	it("uses the link as the id without a guid, and an enclosure as the thumbnail even with Zenn's type=\"false\"", () => {
 		expect(items[1]).toMatchObject({
 			summary: "段落 もう一つ",
 			item_id: "https://example.com/posts/1",
@@ -76,6 +77,23 @@ describe("parseFeed: RSS 2.0", () => {
 
 	it("returns nothing for something that is not a feed", () => {
 		expect(parseFeed("<!DOCTYPE html><html><title>Error 404</title></html>", "https://example.com/feed")).toEqual([]);
+	});
+});
+
+describe("parseFeed: Hatena Blog (Atom)", () => {
+	it("reads the entry and takes the eyecatch from <link rel=\"enclosure\">", () => {
+		expect(parseFeed(hatenaAtom, "https://example.hatenablog.com/feed")).toEqual([
+			{
+				title: "はてなブログの記事",
+				summary: "記事の書き出しです。",
+				item_url: "https://example.hatenablog.com/entry/2026/10/23/110000",
+				item_id: "hatenablog://entry/2",
+				posted_at: "2026-10-23T02:00:00.000Z",
+				thumbnail: { url: "https://cdn.example.com/eyecatch.png" },
+				source: "hatena",
+				kind: "article",
+			},
+		]);
 	});
 });
 

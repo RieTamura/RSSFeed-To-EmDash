@@ -116,7 +116,8 @@ function isoDate(value: string): string | null {
 }
 
 function summaryOf(html: string): string {
-	const text = plainText(html);
+	// note ends every description with a "続きをみる" (read more) link
+	const text = plainText(html).replace(/\s*続きをみる$/, "");
 	return text.length > SUMMARY_LENGTH ? `${text.slice(0, SUMMARY_LENGTH - 1)}…` : text;
 }
 
@@ -138,15 +139,25 @@ function kindOf(source: FeedSource, url: string): FeedKind {
 }
 
 function thumbnailOf(item: string): Thumbnail | null {
-	// Media RSS: <media:thumbnail url="…" width="…" height="…"/> (YouTube, Zenn) or <media:thumbnail>url</media:thumbnail> (note)
+	// Media RSS: <media:thumbnail url="…" width="…" height="…"/> (YouTube) or <media:thumbnail>url</media:thumbnail> (note)
 	const tag = startTags(item, "media:thumbnail")[0];
 	if (tag !== undefined) {
 		const url = attr(tag, "url") ?? childText(item, "media:thumbnail");
 		if (url) return { url, width: numberAttr(tag, "width"), height: numberAttr(tag, "height") };
 	}
+	// RSS <enclosure url="…" type="image/png"/>. Zenn writes type="false", so
+	// anything that is not clearly audio or video counts as an image.
 	for (const enclosure of startTags(item, "enclosure")) {
 		const url = attr(enclosure, "url");
-		if (url && attr(enclosure, "type")?.startsWith("image/")) return { url };
+		const type = attr(enclosure, "type") ?? "";
+		if (url && !/^(audio|video)\//.test(type)) return { url };
+	}
+	// Atom <link rel="enclosure" href="…" type="image/png"/> (Hatena Blog)
+	for (const link of startTags(item, "link")) {
+		const href = attr(link, "href");
+		if (href && attr(link, "rel") === "enclosure" && attr(link, "type")?.startsWith("image/")) {
+			return { url: href };
+		}
 	}
 	return null;
 }

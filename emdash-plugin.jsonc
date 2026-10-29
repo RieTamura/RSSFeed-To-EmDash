@@ -21,8 +21,17 @@
 		"content:write",
 		"content:publish"
 	],
-	// YouTube channel feeds. note, Zenn and Hatena Blog are added before the first release.
-	"allowedHosts": ["www.youtube.com"],
+	// The feed services this plugin knows. Hatena Blog on a custom domain is not covered.
+	"allowedHosts": [
+		"www.youtube.com",
+		"note.com",
+		"zenn.dev",
+		"*.hatenablog.com",
+		"*.hatenablog.jp",
+		"*.hateblo.jp",
+		"*.hatenadiary.com",
+		"*.hatenadiary.jp"
+	],
 	"storage": {
 		// One record per saved item, keyed by a hash of its feed id, so an item deleted in the admin is not saved again.
 		"items": { "indexes": ["postedAt"] }
@@ -30,19 +39,19 @@
 
 	"admin": {
 		"settingsSchema": {
-			"feed_url": {
-				"label": "Feed URL",
-				"description": "The RSS or Atom feed to show. For a YouTube channel, use https://www.youtube.com/feeds/videos.xml?channel_id=…",
-				"type": "url",
-				"placeholder": "https://www.youtube.com/feeds/videos.xml?channel_id=…"
+			"feed_urls": {
+				"label": "Feed URLs",
+				"description": "One RSS or Atom feed per line. Every 30 minutes the plugin reads one of them, in turn. YouTube: https://www.youtube.com/feeds/videos.xml?channel_id=… note: https://note.com/<user>/rss Zenn: https://zenn.dev/<user>/feed Hatena Blog: https://<blog>.hatenablog.com/rss",
+				"type": "string",
+				"multiline": true
 			},
 			"limit": {
 				"label": "Items to import",
-				"description": "How many of the newest items in the feed to save. A YouTube feed holds 15.",
+				"description": "How many of the newest items in each feed to save. A YouTube feed holds 15, blog feeds 20 to 30.",
 				"type": "number",
 				"default": 15,
 				"min": 1,
-				"max": 15
+				"max": 30
 			},
 			"include_shorts": {
 				"label": "Include YouTube Shorts",

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="ja">
+  <title>Example Blog</title>
+  <link href="https://example.hatenablog.com/"/>
+  <updated>2026-10-23T11:00:00+09:00</updated>
+  <author>
+    <name>example</name>
+  </author>
+  <generator uri="https://blog.hatena.ne.jp/" version="1">Hatena::Blog</generator>
+  <id>hatenablog://blog/1</id>
+  <entry>
+    <title>はてなブログの記事</title>
+    <link href="https://example.hatenablog.com/entry/2026/10/23/110000"/>
+    <id>hatenablog://entry/2</id>
+    <published>2026-10-23T11:00:00+09:00</published>
+    <updated>2026-10-23T11:05:00+09:00</updated>
+    <summary type="html">記事の書き出しです。</summary>
+    <content type="html">&lt;p&gt;記事の書き出しです。&lt;img src=&quot;https://example.com/a.png&quot;&gt;&lt;/p&gt;</content>
+    <link rel="enclosure" href="https://cdn.example.com/eyecatch.png" type="image/png" length="0" />
+    <author>
+      <name>example</name>
+    </author>
+  </entry>
+</feed>

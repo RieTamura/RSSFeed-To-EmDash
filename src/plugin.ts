@@ -4,9 +4,15 @@ import { type ItemFields, keyOf, parseFeed, REQUIRED_FIELDS } from "./feed";
 
 const DEFAULT_COLLECTION = "feed_items";
 const DEFAULT_LIMIT = 15;
+const MAX_LIMIT = 30;
 const CRON_TASK = "sync";
-/** Feeds change slowly, and YouTube refuses clients that ask too often. */
+/**
+ * Each run reads one feed, taking them in turn. Feeds change slowly, and
+ * YouTube refuses clients that ask too often.
+ */
 const CRON_SCHEDULE = "*/30 * * * *";
+/** KV key: index of the feed the next run reads. */
+const NEXT_FEED_KEY = "state:nextFeed";
 /**
  * Time limit for one scheduled run. The host's default is 5 seconds, which
  * a deployed run can exceed when the database is far away.
@@ -37,7 +43,7 @@ interface Existing {
 }
 
 interface Settings {
-	feedUrl: string;
+	feedUrls: string[];
 	limit: number;
 	includeShorts: boolean;
 	collection: string;
@@ -46,6 +52,7 @@ interface Settings {
 type SyncResult =
 	| {
 			status: "ok";
+			feed: string;
 			created: number;
 			published: number;
 			duplicatesRemoved: number;
@@ -53,21 +60,30 @@ type SyncResult =
 	  }
 	| { status: "not_configured" }
 	| { status: "collection_invalid"; collection: string; problems: string[] }
-	| { status: "fetch_failed"; httpStatus: number };
+	| { status: "fetch_failed"; feed: string; httpStatus: number };
 
 async function scheduleSync(ctx: PluginContext) {
 	await ctx.cron?.schedule(CRON_TASK, { schedule: CRON_SCHEDULE });
 }
 
+/** The feed URLs in the setting, one per line; lines that are not http(s) URLs are skipped. */
+export function feedUrlsOf(value: unknown): string[] {
+	if (typeof value !== "string") return [];
+	return value
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter((line) => URL.canParse(line) && /^https?:$/.test(new URL(line).protocol));
+}
+
 /** The settings, or null while no usable feed URL is set. */
 async function readSettings(ctx: PluginContext): Promise<Settings | null> {
-	const feedUrl = (await ctx.settings.get<string>("feed_url"))?.trim();
-	if (!feedUrl || !URL.canParse(feedUrl)) return null;
+	const feedUrls = feedUrlsOf(await ctx.settings.get("feed_urls"));
+	if (feedUrls.length === 0) return null;
 	const limit = Number(await ctx.settings.get("limit"));
 	const collection = (await ctx.settings.get<string>("collection"))?.trim();
 	return {
-		feedUrl,
-		limit: Number.isInteger(limit) && limit >= 1 && limit <= 15 ? limit : DEFAULT_LIMIT,
+		feedUrls,
+		limit: Number.isInteger(limit) && limit >= 1 && limit <= MAX_LIMIT ? limit : DEFAULT_LIMIT,
 		includeShorts: (await ctx.settings.get<boolean>("include_shorts")) === true,
 		collection: collection || DEFAULT_COLLECTION,
 	};
@@ -144,16 +160,20 @@ async function sync(ctx: PluginContext): Promise<SyncResult> {
 		return { status: "collection_invalid", collection, problems };
 	}
 
+	const turn = Number(await ctx.kv.get(NEXT_FEED_KEY)) || 0;
+	const feed = settings.feedUrls[turn % settings.feedUrls.length]!;
+	await ctx.kv.set(NEXT_FEED_KEY, (turn + 1) % settings.feedUrls.length);
+
 	// YouTube's feeds sometimes answer 404 or 500 for a while. Nothing is
-	// changed then; the next run tries again.
-	const response = await ctx.http!.fetch(settings.feedUrl, {
+	// changed then; this feed is tried again on its next turn.
+	const response = await ctx.http!.fetch(feed, {
 		headers: { accept: "application/atom+xml, application/rss+xml, application/xml, text/xml" },
 	});
 	if (!response.ok) {
-		ctx.log.warn("Feed request failed", { status: response.status });
-		return { status: "fetch_failed", httpStatus: response.status };
+		ctx.log.warn("Feed request failed", { feed, status: response.status });
+		return { status: "fetch_failed", feed, httpStatus: response.status };
 	}
-	const items = wanted(parseFeed(await response.text(), settings.feedUrl), settings);
+	const items = wanted(parseFeed(await response.text(), feed), settings);
 	const keys = await Promise.all(items.map((item) => keyOf(item.item_id)));
 
 	const synced = ctx.storage.items!;
@@ -202,7 +222,14 @@ async function sync(ctx: PluginContext): Promise<SyncResult> {
 	}
 
 	await ctx.kv.set("state:lastSync", new Date().toISOString());
-	return { status: "ok", created, published, duplicatesRemoved, remaining: pending.length - created };
+	return {
+		status: "ok",
+		feed,
+		created,
+		published,
+		duplicatesRemoved,
+		remaining: pending.length - created,
+	};
 }
 
 const plugin: SandboxedPlugin = {

@@ -9,7 +9,7 @@
    <link>https://example.com/posts/2</link>
    <guid isPermaLink="true">https://example.com/posts/2</guid>
    <pubDate>Tue, 28 Oct 2026 09:30:00 +0900</pubDate>
-   <description><![CDATA[<p>本文の<strong>はじめ</strong>です。&amp; も入る。</p>]]></description>
+   <description><![CDATA[<p>本文の<strong>はじめ</strong>です。&amp; も入る。</p><br/><a href='https://example.com/posts/2'>続きをみる</a>]]></description>
    <media:thumbnail>https://example.com/images/2.png</media:thumbnail>
   </item>
   <item>
@@ -17,7 +17,7 @@
    <link>https://example.com/posts/1</link>
    <pubDate>Mon, 20 Oct 2026 09:30:00 +0900</pubDate>
    <description>&lt;p&gt;段落&lt;/p&gt;&lt;p&gt;もう一つ&lt;/p&gt;</description>
-   <enclosure url="https://example.com/images/1.jpg" type="image/jpeg" length="0"/>
+   <enclosure url="https://example.com/images/1.jpg" length="0" type="false"/>
   </item>
   <item>
    <title>日付のない記事</title>
