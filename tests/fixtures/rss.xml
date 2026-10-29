@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+ <channel>
+  <title>Example Blog</title>
+  <link>https://example.com/</link>
+  <description>An example blog</description>
+  <item>
+   <title><![CDATA[CDATA の題 & 記号]]></title>
+   <link>https://example.com/posts/2</link>
+   <guid isPermaLink="true">https://example.com/posts/2</guid>
+   <pubDate>Tue, 28 Oct 2026 09:30:00 +0900</pubDate>
+   <description><![CDATA[<p>本文の<strong>はじめ</strong>です。&amp; も入る。</p>]]></description>
+   <media:thumbnail>https://example.com/images/2.png</media:thumbnail>
+  </item>
+  <item>
+   <title>エスケープされた本文</title>
+   <link>https://example.com/posts/1</link>
+   <pubDate>Mon, 20 Oct 2026 09:30:00 +0900</pubDate>
+   <description>&lt;p&gt;段落&lt;/p&gt;&lt;p&gt;もう一つ&lt;/p&gt;</description>
+   <enclosure url="https://example.com/images/1.jpg" type="image/jpeg" length="0"/>
+  </item>
+  <item>
+   <title>日付のない記事</title>
+   <link>https://example.com/posts/0</link>
+  </item>
+ </channel>
+</rss>

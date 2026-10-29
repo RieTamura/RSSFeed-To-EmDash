@@ -24,8 +24,8 @@
 	// YouTube channel feeds. note, Zenn and Hatena Blog are added before the first release.
 	"allowedHosts": ["www.youtube.com"],
 	"storage": {
-		// One record per saved item, keyed by its feed id, so an item deleted in the admin is not saved again.
-		"items": { "indexes": ["publishedAt"] }
+		// One record per saved item, keyed by a hash of its feed id, so an item deleted in the admin is not saved again.
+		"items": { "indexes": ["postedAt"] }
 	},
 
 	"admin": {
