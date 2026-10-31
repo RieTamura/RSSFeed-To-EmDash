@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 
 import { keyOf, REQUIRED_FIELDS } from "../src/feed";
-import { feedUrlsOf } from "../src/plugin";
+import { feedForNow, feedUrlsOf } from "../src/plugin";
 
 import rss from "./fixtures/rss.xml?raw";
 import youtube from "./fixtures/youtube.xml?raw";
@@ -130,16 +130,25 @@ describe("sync", () => {
 		expect((await h.inspect.content.get("feed_items", draft.id))?.status).toBe("published");
 	});
 
-	it("moves extra copies of an item to the trash, keeping one", async () => {
+	it("moves extra copies of an item to the trash one per run, keeping one", async () => {
 		const h = await setup();
+		await h.fixtures.plugin.setting("limit", 1);
 		const data = { title: "video 2", item_id: "yt:video:video000002" };
 		const first = await h.fixtures.content("feed_items", { slug: "v-1", data });
 		await h.fixtures.content("feed_items", { slug: "v-2", data });
-		await h.http.respond(FEED_URL, feedResponse());
+		await h.fixtures.content("feed_items", { slug: "v-3", data });
 
-		const result = await runSyncRoute(h);
+		const results = [];
+		for (let i = 0; i < 3; i++) {
+			await h.http.respond(FEED_URL, feedResponse());
+			results.push(await runSyncRoute(h));
+		}
 
-		expect(result).toMatchObject({ duplicatesRemoved: 1, published: 1, created: 0 });
+		expect(results).toMatchObject([
+			{ duplicatesRemoved: 1, published: 0, created: 0 },
+			{ duplicatesRemoved: 1, published: 0, created: 0 },
+			{ duplicatesRemoved: 0, published: 1, created: 0 },
+		]);
 		expect((await h.inspect.content.get("feed_items", first.id))?.status).toBe("published");
 	});
 
@@ -163,17 +172,21 @@ describe("sync", () => {
 		expect(await h.inspect.content.list("feed_items")).toHaveLength(0);
 	});
 
-	it("reads one feed per run, taking them in turn", async () => {
+	// The plugin runs in its own worker, out of reach of fake timers, so this
+	// checks the feed for the current turn; feedForNow is tested below.
+	it("reads only the feed for the current turn, skipping lines that are not URLs", async () => {
 		const blog = "https://example.hatenablog.com/rss";
 		const h = await setup({ feedUrl: [FEED_URL, "", "not a url", blog, ""].join("\n") });
-		const feeds = [];
-		for (const url of [FEED_URL, blog, FEED_URL]) {
-			await h.http.respond(url, feedResponse(url === blog ? rss : youtube));
-			feeds.push(((await runSyncRoute(h)) as { feed: string }).feed);
-		}
-		expect(feeds).toEqual([FEED_URL, blog, FEED_URL]);
+		await h.http.respond(FEED_URL, feedResponse(youtube));
+		await h.http.respond(blog, feedResponse(rss));
+		const expected = feedForNow([FEED_URL, blog]);
+
+		const result = (await runSyncRoute(h)) as { feed: string };
+
+		expect(result.feed).toBe(expected);
+		expect(h.http.requests()).toHaveLength(1);
 		const items = await h.inspect.content.list("feed_items");
-		expect(items.map((item) => item.data.source).sort()).toEqual(["hatena", "youtube", "youtube"]);
+		expect(items.map((item) => item.data.source)).toEqual([expected === blog ? "hatena" : "youtube"]);
 	});
 
 	it("does nothing until a feed URL is set", async () => {
@@ -195,6 +208,15 @@ describe("sync", () => {
 			problems: ['collection "feed_items" does not exist'],
 		});
 		expect(h.http.requests()).toHaveLength(0);
+	});
+});
+
+describe("feedForNow", () => {
+	it("moves to the next feed every 30 minutes and wraps around", () => {
+		const feeds = ["a", "b", "c"];
+		const turn = 30 * 60 * 1000;
+		expect([0, 1, 2, 3].map((i) => feedForNow(feeds, i * turn))).toEqual(["a", "b", "c", "a"]);
+		expect(feedForNow(feeds, turn - 1)).toBe("a");
 	});
 });
 

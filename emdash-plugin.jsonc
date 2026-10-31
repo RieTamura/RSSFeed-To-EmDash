@@ -6,8 +6,11 @@
 
 	"license": "MIT",
 	"author": { "name": "Rie Tamura", "url": "https://bsky.app/profile/connectobasan.com" },
-	"security": { "url": "https://github.com/RieTamura" },
-	"description": "Shows items from RSS and Atom feeds, such as a YouTube channel, on your EmDash site by syncing them into a collection.",
+	"security": { "url": "https://github.com/RieTamura/RSSFeed-To-EmDash/issues" },
+	"name": "RSS Feed To EmDash",
+	"description": "Shows YouTube videos and posts from note, Zenn and Hatena Blog on your EmDash site by syncing their RSS and Atom feeds into a collection.",
+	"keywords": ["rss", "atom", "feed", "youtube", "blog"],
+	"repo": "https://github.com/RieTamura/RSSFeed-To-EmDash",
 
 	// Trust contract — what runtime APIs the plugin asks for.
 	// Changing these between releases requires a version bump because

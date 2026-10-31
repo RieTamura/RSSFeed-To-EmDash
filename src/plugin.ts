@@ -11,8 +11,11 @@ const CRON_TASK = "sync";
  * YouTube refuses clients that ask too often.
  */
 const CRON_SCHEDULE = "*/30 * * * *";
-/** KV key: index of the feed the next run reads. */
-const NEXT_FEED_KEY = "state:nextFeed";
+/**
+ * Which feed a run reads comes from the clock: one turn per 30 minutes, so
+ * no stored counter is read or written (each would be a subrequest).
+ */
+const TURN_MS = 30 * 60 * 1000;
 /**
  * Time limit for one scheduled run. The host's default is 5 seconds, which
  * a deployed run can exceed when the database is far away.
@@ -21,9 +24,12 @@ const CRON_TIMEOUT_MS = 120_000;
 /** How many existing entries to check against, newest first. */
 const EXISTING_LIMIT = 100;
 /**
- * How many items to save or publish on each run. On a deployed site one
- * save and publish can take several seconds, and the Cloudflare sandbox
- * allows few subrequests per invocation; the rest wait for the next run.
+ * How many items to save, publish or clean up on each run. On a deployed
+ * site one save and publish can take several seconds, and the Cloudflare
+ * sandbox allows 10 subrequests per invocation, where every `ctx` call
+ * counts as one. A run that saves an item makes 9: settings, schema, feed,
+ * entries, storage, create, remember, revision, publish. The rest wait for
+ * the next run.
  */
 const MAX_PER_RUN = 1;
 
@@ -75,18 +81,24 @@ export function feedUrlsOf(value: unknown): string[] {
 		.filter((line) => URL.canParse(line) && /^https?:$/.test(new URL(line).protocol));
 }
 
-/** The settings, or null while no usable feed URL is set. */
+/** All settings in one call, to save subrequests; null while no usable feed URL is set. */
 async function readSettings(ctx: PluginContext): Promise<Settings | null> {
-	const feedUrls = feedUrlsOf(await ctx.settings.get("feed_urls"));
+	const values = new Map((await ctx.settings.list()).map(({ key, value }) => [key, value]));
+	const feedUrls = feedUrlsOf(values.get("feed_urls"));
 	if (feedUrls.length === 0) return null;
-	const limit = Number(await ctx.settings.get("limit"));
-	const collection = (await ctx.settings.get<string>("collection"))?.trim();
+	const limit = Number(values.get("limit"));
+	const collection = values.get("collection");
 	return {
 		feedUrls,
 		limit: Number.isInteger(limit) && limit >= 1 && limit <= MAX_LIMIT ? limit : DEFAULT_LIMIT,
-		includeShorts: (await ctx.settings.get<boolean>("include_shorts")) === true,
-		collection: collection || DEFAULT_COLLECTION,
+		includeShorts: values.get("include_shorts") === true,
+		collection: (typeof collection === "string" && collection.trim()) || DEFAULT_COLLECTION,
 	};
+}
+
+/** The feed this run reads: the next one every 30 minutes. */
+export function feedForNow(feedUrls: string[], now = Date.now()): string {
+	return feedUrls[Math.floor(now / TURN_MS) % feedUrls.length]!;
 }
 
 /** Problems that would stop the plugin writing to the collection, if any. */
@@ -160,9 +172,7 @@ async function sync(ctx: PluginContext): Promise<SyncResult> {
 		return { status: "collection_invalid", collection, problems };
 	}
 
-	const turn = Number(await ctx.kv.get(NEXT_FEED_KEY)) || 0;
-	const feed = settings.feedUrls[turn % settings.feedUrls.length]!;
-	await ctx.kv.set(NEXT_FEED_KEY, (turn + 1) % settings.feedUrls.length);
+	const feed = feedForNow(settings.feedUrls);
 
 	// YouTube's feeds sometimes answer 404 or 500 for a while. Nothing is
 	// changed then; this feed is tried again on its next turn.
@@ -182,20 +192,22 @@ async function sync(ctx: PluginContext): Promise<SyncResult> {
 		synced.getMany(keys),
 	]);
 
-	// Copies left by runs that were cut off: keep one, move the rest to the trash.
+	let budget = MAX_PER_RUN;
+	let published = 0;
+
+	// Copies left by runs that were cut off: keep one, move the rest to the
+	// trash. Each move uses the run's budget.
 	let duplicatesRemoved = 0;
 	for (const copies of existing.values()) {
 		if (copies.length < 2) continue;
 		const keep = keeperOf(copies);
 		for (const copy of copies) {
-			if (copy === keep) continue;
+			if (copy === keep || budget === 0) continue;
+			budget--;
 			if (await ctx.content!.delete!(collection, copy.id)) duplicatesRemoved++;
 		}
 		copies.splice(0, copies.length, keep);
 	}
-
-	let budget = MAX_PER_RUN;
-	let published = 0;
 
 	// Saved earlier but never published.
 	for (const [i, item] of items.entries()) {
@@ -221,7 +233,6 @@ async function sync(ctx: PluginContext): Promise<SyncResult> {
 		if (await publish(ctx, collection, entry.id)) published++;
 	}
 
-	await ctx.kv.set("state:lastSync", new Date().toISOString());
 	return {
 		status: "ok",
 		feed,
@@ -240,15 +251,8 @@ const plugin: SandboxedPlugin = {
 			timeout: CRON_TIMEOUT_MS,
 			handler: async (event, ctx) => {
 				if (event.name !== CRON_TASK) return;
-				const result = await sync(ctx);
-				if (
-					result.status === "ok" &&
-					(result.created > 0 || result.published > 0 || result.duplicatesRemoved > 0)
-				) {
-					ctx.log.info(
-						`RSS Feed synced: ${result.created} saved, ${result.published} published, ${result.duplicatesRemoved} duplicates removed, ${result.remaining} waiting`,
-					);
-				}
+				// No log on success: a log line is a subrequest too.
+				await sync(ctx);
 			},
 		},
 	},

@@ -1,14 +1,29 @@
-# RSS Feed
+# RSS Feed To EmDash
 
 An EmDash plugin that copies the newest items of RSS and Atom feeds, such as a YouTube channel or a blog on note, Zenn or Hatena Blog, into a collection on your site, so your theme can show them next to your posts.
 
-Every 30 minutes it reads one of your feeds, taking them in turn, skips YouTube Shorts unless you turn them on, and saves each new item as an entry, then publishes it. Publishing purges the collection's cache tag, so cached pages pick the item up on the next request. It saves one new item per run and picks up the rest on later runs. If a feed cannot be read (YouTube's feeds sometimes answer 404 for hours or days), nothing changes and the feed is tried again on its next turn. An item you delete in the admin is not saved again.
+Every 30 minutes it reads one of your feeds, the next one each half hour, skips YouTube Shorts unless you turn them on, and saves each new item as an entry, then publishes it. Publishing purges the collection's cache tag, so cached pages pick the item up on the next request. It saves one new item per run and picks up the rest on later runs. If a feed cannot be read (YouTube's feeds sometimes answer 404 for hours or days), nothing changes and the feed is tried again on its next turn. An item you delete in the admin is not saved again.
 
 The plugin only stores the items. How they look on the site is up to your theme: query the collection like any other.
 
+[日本語の説明はこちら](README_JA.md)
+
 ## Install
 
-The plugin is not on the EmDash plugin registry yet. Install it from GitHub; npm builds it on install:
+There are two ways to install it.
+
+| From | Runs | Cloudflare plan | Install and update |
+| --- | --- | --- | --- |
+| The EmDash plugin registry | In the plugin sandbox | **Workers Paid** (the sandbox needs it) | From the admin |
+| GitHub | In-process, with your site | **Workers Free is fine** | `npm install`, then **deploy** |
+
+### From the registry
+
+In the admin, open **Registry**, search for **RSS Feed To EmDash** and install it. On Cloudflare, registry plugins run in the plugin sandbox, which needs the Workers Paid plan.
+
+### From GitHub
+
+Install it from GitHub; npm builds it on install:
 
 ```sh
 npm install github:RieTamura/RSSFeed-To-EmDash
@@ -24,6 +39,8 @@ emdash({
 	plugins: [rssFeed],
 });
 ```
+
+Then deploy the site. To update the plugin later, run the same `npm install` again and **deploy**; the admin cannot update a plugin installed this way.
 
 ## Setup
 
@@ -115,3 +132,13 @@ npm run build
 `npm run test` builds the plugin and runs its tests through Worker Loader using EmDash's production sandbox wrapper and host bridge.
 
 Bump `version` in `package.json` when you ship a release. `emdash-plugin.jsonc` omits `version`; the build reads it from `package.json`.
+
+The Cloudflare sandbox allows 10 subrequests per run, and every `ctx` call counts as one (settings, logs and KV too). A run that saves an item makes 9, so keep new `ctx` calls out of the sync path or take them from the per-run budget.
+
+## Security
+
+Report problems in [Issues](https://github.com/RieTamura/RSSFeed-To-EmDash/issues).
+
+## License
+
+MIT
