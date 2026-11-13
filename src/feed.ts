@@ -168,6 +168,18 @@ function atomLink(entry: string): string {
 	return alternate === undefined ? "" : (attr(alternate, "href") ?? "");
 }
 
+/**
+ * The link without the utm_ tracking parameters some feeds add, such as
+ * WordPress's ?utm_source=rss. Other parameters, like YouTube's ?v=, stay.
+ */
+export function withoutTracking(url: string): string {
+	const parsed = new URL(url);
+	const tracking = [...parsed.searchParams.keys()].filter((key) => key.toLowerCase().startsWith("utm_"));
+	if (tracking.length === 0) return url;
+	for (const key of tracking) parsed.searchParams.delete(key);
+	return parsed.href;
+}
+
 function toFields(
 	raw: { title: string; url: string; id: string; date: string; summary: string; item: string },
 	source: FeedSource,
@@ -177,7 +189,8 @@ function toFields(
 	return {
 		title: plainText(raw.title),
 		summary: summaryOf(raw.summary),
-		item_url: raw.url,
+		item_url: withoutTracking(raw.url),
+		// Keep the id as the feed gives it, so items saved before stay matched.
 		item_id: raw.id || raw.url,
 		posted_at: postedAt,
 		thumbnail: thumbnailOf(raw.item),

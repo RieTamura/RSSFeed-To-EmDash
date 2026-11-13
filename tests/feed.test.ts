@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseFeed, sourceOf } from "../src/feed";
+import { parseFeed, sourceOf, withoutTracking } from "../src/feed";
 
 import hatenaAtom from "./fixtures/hatena-atom.xml?raw";
 import rss from "./fixtures/rss.xml?raw";
@@ -104,5 +104,26 @@ describe("sourceOf", () => {
 		expect(sourceOf("https://zenn.dev/example/feed")).toBe("zenn");
 		expect(sourceOf("https://example.hatenablog.com/rss")).toBe("hatena");
 		expect(sourceOf("https://notyoutube.com/feed")).toBe("other");
+	});
+});
+
+describe("withoutTracking", () => {
+	it("drops utm_ parameters and keeps the rest", () => {
+		expect(withoutTracking("https://example.com/ai-time/?utm_source=rss&utm_medium=rss&utm_campaign=ai-time")).toBe(
+			"https://example.com/ai-time/",
+		);
+		expect(withoutTracking("https://example.com/?p=1&UTM_Source=rss#top")).toBe("https://example.com/?p=1#top");
+		expect(withoutTracking("https://www.youtube.com/watch?v=video000002")).toBe(
+			"https://www.youtube.com/watch?v=video000002",
+		);
+	});
+
+	it("is applied to the link of a WordPress item, but not to its id", () => {
+		const xml = `<?xml version="1.0"?><rss version="2.0"><channel><title>Blog</title><link>https://example.com</link>
+<item><title>Post</title><link>https://example.com/post/?utm_source=rss&#038;utm_medium=rss</link>
+<guid isPermaLink="false">https://example.com/?p=1</guid><pubDate>Fri, 16 Oct 2026 11:50:33 +0000</pubDate>
+<description>Body</description></item></channel></rss>`;
+		const [item] = parseFeed(xml, "https://example.com/feed/");
+		expect(item).toMatchObject({ item_url: "https://example.com/post/", item_id: "https://example.com/?p=1" });
 	});
 });

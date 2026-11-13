@@ -70,7 +70,7 @@ Then deploy the site. To update the plugin later, run the same `npm install` aga
    The plugin reads the URLs you list on any public host. It does not connect to private or internal addresses.
 3. Optionally choose how many items of each feed to import (1–30) and whether to include YouTube Shorts.
 
-Each item records its `source` (`youtube`, `note`, `zenn`, `hatena`, or `other` for any other site) and `kind` (`video`, `short`, `article`). An item gets a `thumbnail` only when its feed gives one (`media:thumbnail` or an image enclosure); otherwise it is empty.
+Each item records its `source` (`youtube`, `note`, `zenn`, `hatena`, or `other` for any other site) and `kind` (`video`, `short`, `article`). An item gets a `thumbnail` only when its feed gives one (`media:thumbnail` or an image enclosure); otherwise it is empty. `item_url` is saved without `utm_` tracking parameters, such as the `?utm_source=rss` WordPress adds.
 
 ## Showing the items
 
