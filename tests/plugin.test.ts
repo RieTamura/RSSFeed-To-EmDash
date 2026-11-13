@@ -172,6 +172,16 @@ describe("sync", () => {
 		expect(await h.inspect.content.list("feed_items")).toHaveLength(0);
 	});
 
+	it("reads a feed on any host, such as a blog on its own domain", async () => {
+		const blog = "https://blog.example.com/feed/";
+		const h = await setup({ feedUrl: blog });
+		await h.http.respond(blog, feedResponse(rss));
+
+		expect(await runSyncRoute(h)).toMatchObject({ status: "ok", feed: blog, created: 1 });
+		const items = await h.inspect.content.list("feed_items");
+		expect(items[0]?.data).toMatchObject({ source: "other", kind: "article" });
+	});
+
 	// The plugin runs in its own worker, out of reach of fake timers, so this
 	// checks the feed for the current turn; feedForNow is tested below.
 	it("reads only the feed for the current turn, skipping lines that are not URLs", async () => {

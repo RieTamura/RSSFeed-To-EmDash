@@ -65,11 +65,12 @@ Then deploy the site. To update the plugin later, run the same `npm install` aga
    | note | `https://note.com/<user>/rss` |
    | Zenn | `https://zenn.dev/<user>/feed` |
    | Hatena Blog | `https://<blog>.hatenablog.com/rss` (also `.hatenablog.jp`, `.hateblo.jp`, `.hatenadiary.com`, `.hatenadiary.jp`) |
+   | Any other site | Its RSS or Atom feed, such as `https://example.com/feed/` for WordPress |
 
-   The plugin may only reach these hosts, so other feeds, and Hatena Blog on a custom domain, cannot be read.
+   The plugin reads the URLs you list on any public host. It does not connect to private or internal addresses.
 3. Optionally choose how many items of each feed to import (1–30) and whether to include YouTube Shorts.
 
-Each item records its `source` (`youtube`, `note`, `zenn`, `hatena`) and `kind` (`video`, `short`, `article`).
+Each item records its `source` (`youtube`, `note`, `zenn`, `hatena`, or `other` for any other site) and `kind` (`video`, `short`, `article`). An item gets a `thumbnail` only when its feed gives one (`media:thumbnail` or an image enclosure); otherwise it is empty.
 
 ## Showing the items
 

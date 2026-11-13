@@ -65,11 +65,12 @@ emdash({
    | note | `https://note.com/<ユーザー名>/rss` |
    | Zenn | `https://zenn.dev/<ユーザー名>/feed` |
    | はてなブログ | `https://<ブログ>.hatenablog.com/rss`（`.hatenablog.jp`、`.hateblo.jp`、`.hatenadiary.com`、`.hatenadiary.jp` も可） |
+   | そのほかのサイト | そのサイトの RSS か Atom のフィード（WordPress なら `https://example.com/feed/` など） |
 
-   プラグインがアクセスできるのはこのサービスだけです。ほかのフィードや、独自ドメインのはてなブログは読めません。
+   書いた URL は、公開されているホストならどこでも読めます。プライベートなアドレスや内部向けのアドレスには接続しません。
 3. 必要なら、フィードごとに入れる件数（1〜30）と、YouTube のショートを入れるかを選びます。
 
-項目には `source`（`youtube`、`note`、`zenn`、`hatena`）と `kind`（`video`、`short`、`article`）が入ります。
+項目には `source`（`youtube`、`note`、`zenn`、`hatena`、それ以外のサイトは `other`）と `kind`（`video`、`short`、`article`）が入ります。`thumbnail` が入るのは、フィードに画像（`media:thumbnail` か画像の enclosure）があるときだけです。ないときは空になります。
 
 ## 表示のしかた
 

@@ -8,7 +8,7 @@
 	"author": { "name": "Rie Tamura", "url": "https://bsky.app/profile/rietamura.com" },
 	"security": { "url": "https://github.com/RieTamura/RSSFeed-To-EmDash/issues" },
 	"name": "RSS Feed To EmDash",
-	"description": "Shows YouTube videos and posts from note, Zenn and Hatena Blog on your EmDash site by syncing their RSS and Atom feeds into a collection.",
+	"description": "Shows YouTube videos and posts from note, Zenn, Hatena Blog or any blog on your EmDash site by syncing their RSS and Atom feeds.",
 	"keywords": ["rss", "atom", "feed", "youtube", "blog"],
 	"repo": "https://github.com/RieTamura/RSSFeed-To-EmDash",
 	"release": {
@@ -22,25 +22,16 @@
 	// Changing these between releases requires a version bump because
 	// installed users have consented to the old contract.
 	"capabilities": [
-		// Read the feed.
-		"network:request",
+		// Read the feeds the site owner lists, on any public host.
+		"network:request:unrestricted",
 		// Check that the target collection has the fields the plugin writes.
 		"schema:read",
 		// Save each new item as an entry, then publish it.
 		"content:write",
 		"content:publish"
 	],
-	// The feed services this plugin knows. Hatena Blog on a custom domain is not covered.
-	"allowedHosts": [
-		"www.youtube.com",
-		"note.com",
-		"zenn.dev",
-		"*.hatenablog.com",
-		"*.hatenablog.jp",
-		"*.hateblo.jp",
-		"*.hatenadiary.com",
-		"*.hatenadiary.jp"
-	],
+	// Empty: the site owner types in the feed URLs, so any public host may be read.
+	"allowedHosts": [],
 	"storage": {
 		// One record per saved item, keyed by a hash of its feed id, so an item deleted in the admin is not saved again.
 		"items": { "indexes": ["postedAt"] }
@@ -50,7 +41,7 @@
 		"settingsSchema": {
 			"feed_urls": {
 				"label": "Feed URLs",
-				"description": "One RSS or Atom feed per line. Every 30 minutes the plugin reads one of them, in turn. YouTube: https://www.youtube.com/feeds/videos.xml?channel_id=… note: https://note.com/<user>/rss Zenn: https://zenn.dev/<user>/feed Hatena Blog: https://<blog>.hatenablog.com/rss",
+				"description": "One RSS or Atom feed per line. Every 30 minutes the plugin reads one of them, in turn. YouTube: https://www.youtube.com/feeds/videos.xml?channel_id=… note: https://note.com/<user>/rss Zenn: https://zenn.dev/<user>/feed Hatena Blog: https://<blog>.hatenablog.com/rss Any other RSS or Atom feed works too, such as https://example.com/feed/ for WordPress.",
 				"type": "string",
 				"multiline": true
 			},
